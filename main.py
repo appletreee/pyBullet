@@ -1,3 +1,4 @@
+import sys
 import cv2
 import numpy
 import os
@@ -6,6 +7,8 @@ import pybullet_data
 from skimage import measure
 import time
 
+# Setup to print out all value of matrix
+numpy.set_printoptions(threshold=sys.maxsize)
 
 def check_directory(directory_list):
     for directory in directory_list:
@@ -19,8 +22,6 @@ def segmented_mask_to_bbox(mask):
     # Create bounding boxes from segmented mask. [min, max)
     label_mask = measure.label(mask)
     props = measure.regionprops(label_mask)
-    print("Props:")
-    print(props[0])
 
     min_row, min_col, max_row, max_col = props[0].bbox
 
@@ -84,19 +85,27 @@ def data_generate_v2(rgbArr, segArr, depArr, width, height, numImg):
     f = open(f"{LABEL_DIR}/image{str(numImg)}.txt", "w")
     for obj_order, color in object2color.items():
         mask = (seg_label == obj_order).squeeze(axis=2)
-        # Segmentation result
-        seg_image[mask] = color
 
-        # Get bounding box from segmented mask
-        norm_center_x, norm_center_y, norm_width, norm_height, bbox = \
-            segmented_mask_to_bbox(mask)
-        min_row, min_col, max_row, max_col = bbox
+        # Caution: when there are some objects which are hidden, there is no label file for these objects
+        # We need to check if the object is hidden
+        check = numpy.all(mask == False)
+        if check:
+            print("There is som objects are hidden")
+        else:
+            # Segmentation result
+            seg_image[mask] = color
 
-        # Record bounding box
-        f.write(f"{obj_order} {norm_center_x} {norm_center_y} {norm_width} {norm_height}\n")
+            # Get bounding box from segmented mask
+            norm_center_x, norm_center_y, norm_width, norm_height, bbox = \
+                segmented_mask_to_bbox(mask)
+            min_row, min_col, max_row, max_col = bbox
 
-        # Draw labeled image(bounding boxes)
-        cv2.rectangle(img, (min_col, min_row), (max_col, max_row), (0, 0, 255), 2)
+            # Record bounding box
+            f.write(f"{obj_order} {norm_center_x} {norm_center_y} {norm_width} {norm_height}\n")
+
+            # Draw labeled image(bounding boxes)
+            cv2.rectangle(img, (min_col, min_row), (max_col, max_row), (0, 0, 255), 2)
+
     f.close()
 
     # Save semantic segmentation result
