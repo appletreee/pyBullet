@@ -1,0 +1,38 @@
+## The script for generating images dataset
+# Target objects: 002_master_chef_can || 003_cracker_box || 004_sugar_box || 005_tomato_soup_can
+# Total 100k images for each format: RGB images, depth images, bbox images, segmented images, labels
+# Total 20 backgrounds
+
+# Back ground 1: only 4 target objects
+# Back ground 2: add 2 distractor objects: 006_mustard_bottle 	|| 007_tuna_fish_can
+# Back ground 3: add 2 distractor objects: 008_pudding_box 	|| 009_gelatin_box
+# Back ground 4: add 2 distractor objects: 010_potted_meat_can 	|| 011_banana
+# Back ground 5: add 2 distractor objects: 012_strawberry 	|| 013_appleolor
+# Back ground 6: add 2 distractor objects: 014_lemon 		|| 015_peach
+# Back ground 7: add 3 distractor objects: 006_mustard_bottle 	|| 007_tuna_fish_can 	|| 008_pudding_box
+# Back ground 8: add 3 distractor objects: 009_gelatin_box 	|| 010_potted_meat_can 	|| 011_banana
+# Back ground 9: add 3 distractor objects: 012_strawberry	|| 013_apple 		|| 014_lemon
+# Back ground 10: add 3 distractor objects: 015_peach 		|| 006_mustard_bottle 	|| 007_tuna_fish_can
+# Back ground 11: add 4 distractor objects: 006_mustard_bottle 	|| 007_tuna_fish_can 	|| 008_pudding_box 	|| 009_gelatin
+# Back ground 12: add 4 distractor objects: 008_pudding_box 	|| 009_gelatin_box 	|| 010_potted_meat_can 	|| 011_banana
+# Back ground 13: add 4 distractor objects: 010_potted_meat_can || 011_banana 		|| 012_strawberry 	|| 013_apple
+# Back ground 14: add 4 distractor objects: 012_strawberry 	|| 013_apple 		|| 014_lemon		|| 015_peach
+# Back ground 15: add 4 distractor objects: 014_lemon 		|| 015_peach 		|| 006_mustard_bottle 	|| 007_tuna_fish_can
+# Back ground 16: add 5 distractor objects: 025_mug		|| 026_sponge		|| 027_skillet		|| 028_skillet_lid
+# Back ground 17: add 5 distractor objects: 026_sponge		|| 027_skillet		|| 028_skillet_lid	|| 029_plate
+# Back ground 18: add 5 distractor objects: 027_skillet		|| 028_skillet_lid	|| 029_plate 		|| 030_fork
+# Back ground 19: add 5 distractor objects: 006_mustard_bottle	|| 007_tuna_fish_can 	|| 025_mug		|| 026_sponge		|| 027_skillet
+# Back ground 20: add 5 distractor objects: 007_tuna_fish_can	|| 027_skillet		|| 028_skillet_lid	|| 029_plate		|| 026_sponge
+
+# For each background we:
+	# Move the camera and change light c
+	# X: -0.5 : 0.5, 7 steps
+		# y: -0.5 : 0.5, 7 steps
+			# z: 0.35 : 0.45, 5 steps
+				# Light color: Red: 0 : 1, 3 steps
+					# Light color: Green: 0 : 1, 3 steps
+						# Light color: Blue: 0 : 1, 3 steps
+# After each background, we get: 6615 images.
+# And we get 132.300 images after 20 bachgrounds.
+
+# Note: Save object location, object pose, camera parameter for each step in a .txt file. It's may needed for DenseFusion after.
