@@ -7,14 +7,17 @@ import pybullet_data
 from skimage import measure
 import time
 
+import yaml
 # Setup to print out all value of matrix
 numpy.set_printoptions(threshold=sys.maxsize)
+
 
 def check_directory(directory_list):
     for directory in directory_list:
         if not os.path.exists(directory):
             os.makedirs(directory)
             print(f"Create '{directory}'")
+
 
 def segmented_mask_to_bbox(mask):
     """ Assume only one object in the mask. """
@@ -33,6 +36,7 @@ def segmented_mask_to_bbox(mask):
 
     bbox = (min_row, min_col, max_row - 1, max_col - 1)
     return norm_center_x, norm_center_y, norm_width, norm_height, bbox
+
 
 def data_generate_v2(rgbArr, segArr, depArr, width, height, numImg):
     #######################################################
@@ -117,6 +121,7 @@ def data_generate_v2(rgbArr, segArr, depArr, width, height, numImg):
     cv2.imwrite(f"{LABELED_IMG}/bounding box image{str(numImg)}.jpg", img)
     return
 
+
 def setup_parameter_generate(Obj1_Pos, Obj1_Ori, Obj2_Pos, Obj2_Ori, Obj3_Pos, Obj3_Ori, Obj4_Pos, Obj4_Ori, cameraPosition, lightColor, numImg):
     f = open(f"{SETUP_PARAMETER}/image{str(numImg)}.txt", "w")
     f.write(f"Object 1 Position: {Obj1_Pos}, Object 1 Orientation: {Obj1_Ori}\n")
@@ -127,10 +132,28 @@ def setup_parameter_generate(Obj1_Pos, Obj1_Ori, Obj2_Pos, Obj2_Ori, Obj3_Pos, O
     f.write(f"Light color: Red:{lightColor[0]}, Green:{lightColor[1]}, Blue:{lightColor[2]}\n")
     return
 
+
+def save_pose(Obj1_Pos, Obj1_Ori, Obj2_Pos, Obj2_Ori, Obj3_Pos, Obj3_Ori, Obj4_Pos, Obj4_Ori,
+              cameraPosition, lightColor, numImg, viewMatrix):
+
+    label_pose = {}
+    label_pose['camera'] = {'transform_mtx': numpy.asarray(viewMatrix).reshape(4, -1).T.reshape(-1).tolist(),
+                            'position': cameraPosition, 'lightColor': lightColor}
+
+    obj_pos = [Obj1_Pos, Obj2_Pos, Obj3_Pos, Obj4_Pos]
+    obj_ori = [list(Obj1_Ori), list(Obj2_Ori), list(Obj3_Ori), list(Obj4_Ori)]
+
+    for j, (po, o) in enumerate(zip(obj_pos, obj_ori), 1):
+        label_pose[j] = {'position': po, 'orientation': o}
+
+    with open(f"{SETUP_PARAMETER}/image{str(numImg)}.yaml", 'w') as outfile:
+        yaml.dump(label_pose, outfile)
+    return
+
 # Start simulation environment
 # `p.GUI` for GUI and `p.DIRECT` for non-graphical version
-physicsClient = p.connect(p.GUI)
-# physicsClient = p.connect(p.DIRECT)
+# physicsClient = p.connect(p.GUI)
+physicsClient = p.connect(p.DIRECT)
 
 # Use floor
 p.setAdditionalSearchPath(pybullet_data.getDataPath()) #optionally
@@ -296,15 +319,19 @@ def dataGenerate(rgbArr, segArr, width, height, numImg):
 # ### ......The angle is measured in Radian
 
 object1_startPos = [0, 0, 0]
+obj1_rot = [0, 0, 0]
 object1_startOrientation = p.getQuaternionFromEuler([0, 0, 0])
 
 object2_startPos = [0.1, 0.1, 0]
+obj2_rot = [0, 0, 1.2*3.14/4]
 object2_startOrientation = p.getQuaternionFromEuler([0, 0, 1.2*3.14/4])
 
 object3_startPos = [-0.03, -0.15, 0]
+obj3_rot = [0, 0, 0.6*3.14]
 object3_startOrientation = p.getQuaternionFromEuler([0, 0, 0.6*3.14])
 
 object4_startPos = [0.2, -0.16, 0]
+obj4_rot = [0, 0, 0.28*3.14]
 object4_startOrientation = p.getQuaternionFromEuler([0, 0, 0.28*3.14])
 
 # ######........... Setup objects...........####
@@ -327,7 +354,7 @@ p.changeVisualShape(planeUid, -1, rgbaColor=[0.57, 0.42, 0.36, 1])
 
 start_time = time.process_time()
 
-#set the center of mass frame (loadURDF sets base link frame) startPos/Ornp.resetBasePositionAndOrientation(boxId, startPos, startOrientation)
+# set the center of mass frame (loadURDF sets base link frame) startPos/Ornp.resetBasePositionAndOrientation(boxId, startPos, startOrientation)
 
 imgIndex = 0
 
@@ -338,11 +365,11 @@ for x in range (0, NUM_X_STEP):
                 for g in range (0, NUM_GREEN_STEP):
                     for b in range (0, NUM_BLUE_STEP):
                         # ###... Setup camera position ...###
-                        # camera_position = [MIN_X_DISTANCE + x * X_STEP,
-                        #                    MIN_Y_DISTANCE + y * Y_STEP,
-                        #                    MIN_Z_DISTANCE + z * Z_STEP]
+                        camera_position = [MIN_X_DISTANCE + x * X_STEP,
+                                           MIN_Y_DISTANCE + y * Y_STEP,
+                                           MIN_Z_DISTANCE + z * Z_STEP]
 
-                        camera_position =   [-0.4, 0.258714, 0.25]
+                        # camera_position = [-0.4, 0.258714, 0.25]
 
                         # ###... Setup light color ... ###
                         Light_color = [RED_MIN + r * RED_STEP, GREEN_MIN + g * GREEN_STEP, BLUE_MIN + b * BLUE_STEP]
@@ -369,22 +396,15 @@ for x in range (0, NUM_X_STEP):
                             data_generate_v2(rgbImg, segImg, depthImg, width, height, imgIndex)
                         else:
                             data_generate_v2(rgbImg, segImg, [], width, height, imgIndex)
-                        setup_parameter_generate(object1_startPos, object1_startOrientation,
-                                                 object2_startPos, object2_startOrientation,
-                                                 object3_startPos, object3_startOrientation,
-                                                 object4_startPos, object4_startOrientation,
-                                                 camera_position, Light_color, imgIndex)
-                        # print("writing and labeling image " + str(imgIndex))
 
-                        # object1_pos, object1_Ori = p.getBasePositionAndOrientation(object1)
-                        # print("object 1 position ", object1_pos,  ", object 1 orientation", object1_Ori)
+                        save_pose(object1_startPos, obj1_rot,
+                                  object2_startPos, obj2_rot,
+                                  object3_startPos, obj3_rot,
+                                  object4_startPos, obj4_rot,
+                                  camera_position, Light_color, imgIndex,
+                                  viewMatrix)
 
 end_time = time.process_time()
 print("generate " + str(NUM_Y_STEP * NUM_Y_STEP * NUM_Z_STEP) + " images in " + str(end_time - start_time) + "s")
 
 p.disconnect()
-
-
-
-
-
