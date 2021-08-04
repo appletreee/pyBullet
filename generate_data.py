@@ -10,7 +10,6 @@ from skimage import measure
 import time
 
 import yaml
-import utils
 
 
 # Setup to print out all value of matrix
