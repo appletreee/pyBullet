@@ -98,17 +98,17 @@ def generate_one_round(round_idx, env_obj_info, pose_dir, projection_matrix):
                 check_directory([img_dir, depth_dir], display=False)
 
                 bbox_dict = {}
-                for target_idx, obj_info in env_obj_info.items():
+                for target_id, obj_info in env_obj_info.items():
                     # Remove non-target object to edge (-5, -5, -5)
-                    remain_object(target_idx, env_obj_info)
+                    remain_object(target_id, env_obj_info)
 
                     width, height, rgbImg, depthImg, segImg = p.getCameraImage(
                         640, 480, view_matrix, projection_matrix, lightDirection,
                         light_color, shadow=True, renderer=p.ER_TINY_RENDERER,
                         flags=p.ER_SEGMENTATION_MASK_OBJECT_AND_LINKINDEX)
 
-                    bbox = target_bbox_from_segmentation(target_idx, segImg, width, height)
-                    bbox_dict[target_idx] = bbox
+                    bbox = target_bbox_from_segmentation(target_id, segImg, width, height)
+                    bbox_dict[target_id] = bbox
 
                     save_target_images(rgbImg, depthImg, width, height, round_idx,
                                        img_index, obj_info['object_name'], img_dir, depth_dir)
@@ -142,10 +142,10 @@ def save_poses(env_obj_info, camera_position, light_color, view_matrix, round_id
         yaml.dump(label_pose, outfile)
 
 
-def remain_object(target_idx, env_obj_info):
+def remain_object(target_id, env_obj_info):
     edge_pos = [-5, -5, -5]
     for body_id, obj_info in env_obj_info.items():
-        if body_id == target_idx:
+        if body_id == target_id:
             p.resetBasePositionAndOrientation(
                 body_id, posObj=obj_info['base_pos'], ornObj=obj_info['base_qua_rot'])
             continue
@@ -155,11 +155,13 @@ def remain_object(target_idx, env_obj_info):
                 body_id, posObj=edge_pos, ornObj=obj_info['base_qua_rot'])
 
 
-def target_bbox_from_segmentation(target_idx, segArr, width, height):
+def target_bbox_from_segmentation(target_id, segArr, width, height):
     seg_label = np.asarray(segArr).reshape([height, width, -1])
-    mask = (seg_label == target_idx).squeeze(axis=2)
+    mask = (seg_label == target_id).squeeze(axis=2)
 
-    row_min, col_min, row_max, col_max = segmented_mask_to_bbox(mask)
+    row_min, col_min, row_max, col_max = 0, 0, 0, 0
+    if not np.all(mask == False):
+        row_min, col_min, row_max, col_max = segmented_mask_to_bbox(mask)
     return row_min, col_min, row_max, col_max
 
 
@@ -302,6 +304,8 @@ parser.add_argument('--max_place', default=6, type=int,
                     help='Maximum number of placed objects (not include)')
 parser.add_argument('--max_round', default=1, type=int,
                     help='Maximum Number of round (load objects again)')
+parser.add_argument('--init_round', default=1, type=int,
+                    help='Initial round')
 args = parser.parse_args()
 
 ##################################################
@@ -376,7 +380,7 @@ and the key is the `bodyUniqueId` from PyBullet.
 projection_matrix = p.computeProjectionMatrixFOV(
     CAM_PARAM['fov'], CAM_PARAM['aspect'], CAM_PARAM['near'], CAM_PARAM['far'])
 
-for round_idx in range(1, args.max_round+1):
+for round_idx in range(args.init_round, args.max_round+1):
     # Load objects into the simulated environment
     env_obj_info = load_objects_into_env(object_names, args.min_place, args.max_place)
 
