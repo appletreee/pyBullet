@@ -6,7 +6,6 @@ from numpy import random
 import os
 import pybullet as p
 import pybullet_data
-from skimage import measure
 import time
 
 import yaml
@@ -61,13 +60,14 @@ def random_set_object_pose():
 
 
 def generate_one_round(round_idx, env_obj_info, pose_dir, projection_matrix):
-    global NUM_X_STEP, NUM_Y_STEP, NUM_Z_STEP, MIN_X_DISTANCE, MIN_Y_DISTANCE, MIN_Z_DISTANCE
-    global X_STEP, Y_STEP, Z_STEP, CAM_PARAM, IMAGE_DIR, DEPTH_DIR
+    global NUM_X_STEP, NUM_Y_STEP, NUM_Z_STEP, MIN_X_DISTANCE, MIN_Y_DISTANCE
+    global MIN_Z_DISTANCE, X_STEP, Y_STEP, Z_STEP, CAM_PARAM
+    global IMAGE_DIR, DEPTH_DIR
 
     img_index = 0
-    for x in range (0, NUM_X_STEP):
-        for y in range (0, NUM_Y_STEP):
-            for z in range (0, NUM_Z_STEP):
+    for x in range(0, NUM_X_STEP):
+        for y in range(0, NUM_Y_STEP):
+            for z in range(0, NUM_Z_STEP):
                 img_index += 1
                 # if img_index > 20:
                 #     print(f'\n{time.process_time() - start_time} (20)')
@@ -76,21 +76,24 @@ def generate_one_round(round_idx, env_obj_info, pose_dir, projection_matrix):
                 camera_position = [MIN_X_DISTANCE + x * X_STEP,
                                    MIN_Y_DISTANCE + y * Y_STEP,
                                    MIN_Z_DISTANCE + z * Z_STEP]
-                print(f"[{img_index:03d}/500] " +\
-                      f"x: [{camera_position[0]:.4f}/{MAX_X_DISTANCE}], " +\
-                      f"y: [{camera_position[1]:.4f}/{MAX_Y_DISTANCE}], " +\
-                      f"z: [{camera_position[2]:.4f}/{MAX_Z_DISTANCE}]", end='\r')
+                print(f"[{round_idx}][{img_index:03d}/500] " +
+                      f"x: [{camera_position[0]:.4f}/{MAX_X_DISTANCE}], " +
+                      f"y: [{camera_position[1]:.4f}/{MAX_Y_DISTANCE}], " +
+                      f"z: [{camera_position[2]:.4f}/{MAX_Z_DISTANCE}]",
+                      end='\r')
 
-                view_matrix = p.computeViewMatrix(cameraEyePosition=camera_position,
-                                                 cameraTargetPosition=[0.0, 0, 0.02],
-                                                 cameraUpVector=[0, 0.08, 1.3])
+                view_matrix = p.computeViewMatrix(
+                    cameraEyePosition=camera_position,
+                    cameraTargetPosition=[0.0, 0, 0.02],
+                    cameraUpVector=[0, 0.08, 1.3])
 
                 delta_r, delta_g, delta_b = random.normal(0, 0.05, 3)
-                light_color = [1 - float(delta_r), 1 - float(delta_g), 1 - float(delta_b)]
+                light_color = [1-float(delta_r), 1-float(delta_g), 1-float(delta_b)]
                 lightDirection = [5, -5, 30]
 
                 # Record pose
-                save_poses(env_obj_info, camera_position, light_color, view_matrix, round_idx, img_index, pose_dir)
+                save_poses(env_obj_info, camera_position, light_color,
+                           view_matrix, round_idx, img_index, pose_dir)
 
                 # Get bbox, image, and depth image of each object
                 img_dir = f"{IMAGE_DIR}/{round_idx:04d}/image{str(img_index)}"
@@ -107,11 +110,13 @@ def generate_one_round(round_idx, env_obj_info, pose_dir, projection_matrix):
                         light_color, shadow=True, renderer=p.ER_TINY_RENDERER,
                         flags=p.ER_SEGMENTATION_MASK_OBJECT_AND_LINKINDEX)
 
-                    bbox = target_bbox_from_segmentation(target_id, segImg, width, height)
+                    bbox = target_bbox_from_segmentation(target_id, segImg,
+                                                         width, height)
                     bbox_dict[target_id] = bbox
 
                     save_target_images(rgbImg, depthImg, width, height, round_idx,
-                                       img_index, obj_info['object_name'], img_dir, depth_dir)
+                                       img_index, obj_info['object_name'],
+                                       img_dir, depth_dir)
 
                 # Recover all object's position
                 for body_id, obj_info in env_obj_info.items():
@@ -124,7 +129,8 @@ def generate_one_round(round_idx, env_obj_info, pose_dir, projection_matrix):
                     light_color, shadow=True, renderer=p.ER_TINY_RENDERER,
                     flags=p.ER_SEGMENTATION_MASK_OBJECT_AND_LINKINDEX)
 
-                record_data(rgbImg, segImg, depthImg, width, height, img_index, env_obj_info, bbox_dict, round_idx, with_seg=True)
+                record_data(rgbImg, segImg, depthImg, width, height, img_index,
+                            env_obj_info, bbox_dict, round_idx, with_seg=True)
 
 
 def save_poses(env_obj_info, camera_position, light_color, view_matrix, round_idx, img_index, data_dir):
@@ -295,7 +301,6 @@ def norm_bounding_box(bbox, width, height, with_center):
     return norm_center_x, norm_center_y, norm_width, norm_height
 
 
-
 parser = argparse.ArgumentParser()
 parser.add_argument('--gui', default=False, action='store_true')
 parser.add_argument('--min_place', default=3, type=int,
@@ -329,13 +334,14 @@ LABELED_IMG = './data_generate/images_bbox'
 LABEL_DIR = './data_generate/labels/bounding_box'
 SEGMENT_IMG = './data_generate/labels/segmentation'
 POSE_DIR = './data_generate/labels/pose'
-check_directory([IMAGE_DIR, DEPTH_DIR, LABEL_DIR, LABELED_IMG, SEGMENT_IMG, POSE_DIR])
+check_directory([IMAGE_DIR, DEPTH_DIR, LABEL_DIR, LABELED_IMG, SEGMENT_IMG,
+                 POSE_DIR])
 
 ##################################################
 # Setup backgorund floor
 ##################################################
 # Setup background floor (Texture supports png format not jpg format)
-background_dir = f"./objects/back_ground_model"
+background_dir = "./objects/back_ground_model"
 bg_pos = [0, 0, 0]
 bg_ori = p.getQuaternionFromEuler([3.14/2, 0, 0])
 p.loadURDF(f"{background_dir}/Paper/Paper.urdf", bg_pos, bg_ori, globalScaling=0.1)
@@ -382,7 +388,8 @@ projection_matrix = p.computeProjectionMatrixFOV(
 
 for round_idx in range(args.init_round, args.max_round+1):
     # Load objects into the simulated environment
-    env_obj_info = load_objects_into_env(object_names, args.min_place, args.max_place)
+    env_obj_info = load_objects_into_env(
+        object_names, args.min_place, args.max_place)
 
     # Generate synthrtic data
     pose_dir = f"{POSE_DIR}/{round_idx:04d}"
