@@ -2,13 +2,13 @@ FROM ethansmin/torch-gpu:v0.1
 LABEL maintainer="Shih-Min Yang"
 
 # Set working directory
-WORKDIR /
+WORKDIR .
 
 # Install packages
 RUN apt-get update && \
 	apt-get install python3-pip && \
-	pip3 install --upgrade pip3 && \
-	pip3 install -r requirements.txt
+	pip3 install --upgrade setuptools pip && \
+	pip3 install --no-cache-dir -r requirements.txt
 
 # Change authority
 RUN chmod +x run.sh
