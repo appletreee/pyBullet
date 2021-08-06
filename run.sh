@@ -2,7 +2,7 @@
 
 main() {
     log_i "Starting to generate synthetic data"
-    python3 generate_data.py --init_round 1 --max_round 50
+    python3 generate_data.py --init_round 10 --max_round 20
 }
 
 
