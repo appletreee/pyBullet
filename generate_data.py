@@ -40,7 +40,7 @@ def load_objects_into_env(object_names, min_place, max_place):
         p_pos, p_qua_rot = p.getBasePositionAndOrientation(body_id)
         pose['base_pos'], pose['base_qua_rot'] = p_pos, p_qua_rot
         env_obj_info[body_id] = pose
-    return env_obj_info
+    return env_obj_info, num_objs
 
 
 def random_set_object_pose():
@@ -303,9 +303,9 @@ def norm_bounding_box(bbox, width, height, with_center):
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--gui', default=False, action='store_true')
-parser.add_argument('--min_place', default=3, type=int,
+parser.add_argument('--min_place', default=4, type=int,
                     help='Minimum number of placed objects')
-parser.add_argument('--max_place', default=6, type=int,
+parser.add_argument('--max_place', default=8, type=int,
                     help='Maximum number of placed objects (not include)')
 parser.add_argument('--max_round', default=1, type=int,
                     help='Maximum Number of round (load objects again)')
@@ -387,14 +387,15 @@ projection_matrix = p.computeProjectionMatrixFOV(
     CAM_PARAM['fov'], CAM_PARAM['aspect'], CAM_PARAM['near'], CAM_PARAM['far'])
 
 for round_idx in range(args.init_round, args.max_round+1):
+    print(f"\nStart a new Round: {round_idx}")
     # Load objects into the simulated environment
-    env_obj_info = load_objects_into_env(
+    env_obj_info, num_objs = load_objects_into_env(
         object_names, args.min_place, args.max_place)
+    print(f"Number of objects: {num_objs}")
 
     # Generate synthrtic data
     pose_dir = f"{POSE_DIR}/{round_idx:04d}"
     check_directory([pose_dir])
-    print(f"\nRound {round_idx}")
     generate_one_round(round_idx, env_obj_info, pose_dir, projection_matrix)
 
     # Remove all objects in the simulated environment
